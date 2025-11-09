@@ -47,23 +47,24 @@
           class="overflow-auto flex-1"
           style="max-height: calc(100vh - 100px)"
         >
-          <VueDraggable
-            ref="draggableRef"
-            v-model="localTimelineItems"
-            animation="150"
-            ghostClass="ghost"
-            class="relative pl-9 border-l-2 border-gray-300 flex flex-col gap-2.5 w-[800px] mx-auto"
-          >
-            <TimelineItem
-              v-for="item in timelineItems"
-              :key="item.id"
-              :item="item"
-              @select="handleCardSelect"
-              @update="updateTimelineItem"
-              @delete="deleteTimelineItem"
-              @edit-plot-point="handleEditPlotPoint"
-            />
-          </VueDraggable>
+          <el-collapse class="w-full border-0" expand-icon-position="left">
+            <VueDraggable
+              ref="draggableRef"
+              v-model="localTimelineItems"
+              animation="150"
+              ghostClass="ghost"
+              class="w-[800px] mx-auto"
+            >
+              <TimelineItem
+                v-for="item in timelineItems"
+                :key="item.id"
+                :item="item"
+                @update="updateTimelineItem"
+                @delete="deleteTimelineItem"
+                @edit-plot-point="handleEditPlotPoint"
+              />
+            </VueDraggable>
+          </el-collapse>
         </div>
       </main>
 
@@ -72,8 +73,6 @@
         :visible="showCardLibrary"
         @update:visible="showCardLibrary = $event"
         :book-id="String(bookStore.currentBook?.id)"
-        @select-card="handleCardSelect"
-        @create-card="handleCreateCard"
       />
     </div>
   </div>
@@ -84,13 +83,14 @@
     :card="editCard"
     @update:visible="showPlotPointCreator = $event"
     @save="handlePlotPointSaved"
+    @delete="deleteTimelineItem"
   />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElCollapse } from "element-plus";
 import { ArrowLeft, Download, Edit, Menu } from "@element-plus/icons-vue";
 import TimelineItem from "../components/TimelineItem.vue";
 import CardLibrary from "../components/CardLibrary.vue";

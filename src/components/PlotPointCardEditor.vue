@@ -27,6 +27,7 @@
     
     <template #footer>
       <div>
+        <el-button type="danger" @click="handleDelete" v-if="props.card && props.card.id">删除</el-button>
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" @click="saveChanges">保存</el-button>
       </div>
@@ -36,7 +37,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBookStore } from '../stores/bookStore'
 
 const bookStore = useBookStore()
@@ -52,7 +53,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible', 'save'])
+const emit = defineEmits(['update:visible', 'save', 'delete'])
 
 // 表单数据
 const formData = reactive({
@@ -141,6 +142,37 @@ const saveChanges = () => {
   ElMessage.success('保存成功')
   emit('save', savedCard) // 传递实际保存的卡片对象
   emit('update:visible', false)
+}
+
+// 删除卡片
+const handleDelete = async () => {
+  if (!props.card || !props.card.id) return;
+  
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个剧情点吗？此操作不可撤销。', 
+      '删除确认', 
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error',
+      }
+    );
+    
+    // 调用store中的删除方法
+    const success = bookStore.deleteCard(props.card.id);
+    
+    if (success) {
+      ElMessage.success('剧情点已删除');
+      emit('delete', props.card.id);
+      emit('update:visible', false);
+    } else {
+      ElMessage.error('删除失败');
+    }
+  } catch {
+    // 用户取消删除操作
+    ElMessage.info('已取消删除');
+  }
 }
 </script>
 

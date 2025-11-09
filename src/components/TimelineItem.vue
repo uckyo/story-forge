@@ -1,53 +1,45 @@
 <template>
-  <div class="relative timeline-item" :data-card-id="item.cardId">
-    <!-- 时间线圆点 - 显示序号 -->
-    <div
-      class="absolute -left-12 w-6 h-6 rounded-full flex items-center justify-center"
-      :class="getPlotTypeColorClass(card?.plotType)"
-    >
-      <span class="text-white text-xs">
-        {{ item.index !== undefined ? item.index + 1 : 1 }}
-      </span>
-    </div>
-
-    <!-- 卡片内容 -->
-    <div
-      class="timeline-item-content bg-white rounded-lg p-4 shadow cursor-pointer hover:bg-gray-50 transition-all duration-300"
-      @click="handleSelect"
-      :data-card-id="item.cardId"
-      draggable="true"
-    >
-      <!-- 剧情点卡片显示 -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <div class="text-sm text-gray-800">
-            <span>{{ card?.content }}</span>
-            <el-tag
-              class="ml-2"
-              :type="getPlotTypeColor(card?.plotType)"
-              size="small"
-              effect="dark"
-            >
-              {{ getPlotTypeName(card?.plotType) }}
-            </el-tag>
-          </div>
-        </div>
-        <div class="flex gap-1">
-          <el-button size="small" link @click.stop="handleDelete">
-            <el-icon>
-              <Close />
-            </el-icon>
-          </el-button>
-        </div>
+  <el-collapse-item
+    :name="item.id"
+    class="timeline-item bg-white rounded-lg px-4 border-0 shadow-sm mb-2 overflow-hidden"
+    :data-card-id="item.cardId"
+  >
+    <template #title>
+      <div class="flex items-center gap-2 w-full">
+        <span class="flex-1">{{ collapseTitle }}</span>
+        <el-tag
+          :type="getPlotTypeColor(card?.plotType)"
+          size="small"
+          effect="dark"
+        >
+          {{ getPlotTypeName(card?.plotType) }}
+        </el-tag>
+        <el-button
+          size="small"
+          link
+          @click.stop="handleEdit"
+          title="编辑"
+          class="ml-auto"
+        >
+          <el-icon>
+            <Edit />
+          </el-icon>
+        </el-button>
       </div>
+    </template>
+    <!-- 折叠内容区域 -->
+    <div class="p-4">
+      <!-- 编辑按钮 -->
+      <div class="flex justify-end"></div>
     </div>
-  </div>
+  </el-collapse-item>
 </template>
 
 <script setup>
 import { computed } from "vue";
+import { ElCollapseItem } from "element-plus";
 import { useBookStore } from "../stores/bookStore";
-import { Close } from "@element-plus/icons-vue";
+import { Edit } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 
 const bookStore = useBookStore();
@@ -105,47 +97,40 @@ const getPlotTypeColor = (type) => {
   return plotTypeConfig[type]?.color || plotTypeConfig.default.color;
 };
 
-// 获取剧情点类型对应的背景色类名
-const getPlotTypeColorClass = (type) => {
-  return plotTypeConfig[type]?.bgColor || plotTypeConfig.default.bgColor;
-};
+// 计算折叠面板的标题
+const collapseTitle = computed(() => {
+  const index = props.item.index !== undefined ? props.item.index + 1 : 1;
+  const content = card.value?.content || "";
 
-const handleSelect = (event) => {
-  // 阻止事件冒泡并触发编辑事件
+  // 直接返回文本内容，标签将在模板中单独处理
+  return `${index}. ${content}`;
+});
+
+const handleEdit = (event) => {
   event?.stopPropagation();
   if (card.value) {
     emit("edit-plot-point", card.value);
   }
 };
-
-const handleDelete = async (event) => {
-  event?.stopPropagation();
-  try {
-    await ElMessageBox.confirm("确定要从时间线中移除这个项目吗？", "删除确认", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
-    emit("delete", props.item.id);
-  } catch {
-    // 用户取消删除操作，不执行任何操作
-  }
-};
 </script>
 
 <style scoped>
-/* 时间线项样式 */
-.timeline-item {
-  position: relative;
-}
-
 /* 内容区域样式 */
 .timeline-item-content {
   transition: all 0.2s ease;
   cursor: grab;
 }
 
-.timeline-item.ghost .timeline-item-content {
+:deep(.el-collapse-item__wrap) {
+  border: none;
+}
+
+:deep(.el-collapse-item__header) {
+  border: none;
+}
+
+.ghost :deep(.el-collapse-item__wrap),
+.ghost :deep(.el-collapse-item__header) {
   background-color: #e6f4ff;
 }
 

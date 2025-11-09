@@ -134,6 +134,19 @@ const handleEdit = (event) => {
   background-color: #e6f4ff;
 }
 
+.el-collapse-item.is-disabled :deep(.el-collapse-item__header) {
+  color: unset;
+  cursor: unset;
+}
+
+.el-collapse-item.is-disabled :deep(.el-collapse-item__title) {
+  margin-left: 20px;
+}
+
+.el-collapse-item.is-disabled :deep(.el-collapse-item__arrow) {
+  display: none;
+}
+
 .timeline-item-content:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

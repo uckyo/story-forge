@@ -172,21 +172,30 @@ function updateTimelineItem(updatedItem) {
   console.log("Timeline item updated:", updatedItem);
 }
 
-function deleteTimelineItem(itemId) {
-  // 获取卡片信息
-  const card = bookStore.getCardById(itemId);
-
-  if (card) {
-    // 直接调用deleteCard方法，它会根据卡片类型进行适当的删除操作
-    const result = bookStore.deleteCard(itemId);
-
-    if (result) {
+function deleteTimelineItem(deleteEvent) {
+  // 处理从PlotPointCardEditor传来的删除事件对象
+  if (typeof deleteEvent === "object" && deleteEvent.id !== undefined) {
+    const { id, success } = deleteEvent;
+    if (success) {
       ElMessage.success("剧情点删除成功");
     } else {
       ElMessage.error("删除失败，请稍后重试");
     }
   } else {
-    ElMessage.error("找不到要删除的剧情点");
+    // 兼容旧的直接传递id的方式
+    const itemId = deleteEvent;
+    const card = bookStore.getCardById(itemId);
+
+    if (card) {
+      const result = bookStore.deleteCard(itemId);
+      if (result) {
+        ElMessage.success("剧情点删除成功");
+      } else {
+        ElMessage.error("删除失败，请稍后重试");
+      }
+    } else {
+      ElMessage.error("找不到要删除的剧情点");
+    }
   }
 }
 

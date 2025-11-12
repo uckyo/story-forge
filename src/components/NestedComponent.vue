@@ -1,11 +1,16 @@
 <template>
   <el-collapse class="w-full border-0" expand-icon-position="left">
-    <VueDraggable class="drag-area" v-model="list" group="g1">
+    <VueDraggable
+      class="drag-area"
+      v-model="list"
+      group="g1"
+      ghostClass="ghost"
+    >
       <el-collapse-item
         v-for="el in modelValue"
         :key="el.id"
         :name="el.id"
-        class="timeline-item rounded-lg px-4 border-0 overflow-hidden"
+        class="timeline-item rounded-lg px-2 border-0 overflow-hidden"
         :data-card-id="el.cardId"
       >
         <template #title>
@@ -99,14 +104,23 @@ const handleEdit = (id, event) => {
 </script>
 <style scoped>
 .drag-area {
-  padding-bottom: 20px;
+  padding-bottom: 5px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
+}
+.el-collapse {
+  --el-collapse-header-height: 30px;
 }
 .el-collapse-item {
   background-color: white;
   border: 1px solid #e4e7ed;
+}
+.ghost :deep(.el-collapse-item__header),
+.ghost :deep(.el-collapse-item__wrap),
+.ghost.el-collapse-item,
+.ghost .el-collapse-item {
+  background-color: #f5f7fa;
 }
 :deep(.el-collapse-item__header),
 :deep(.el-collapse-item__wrap) {

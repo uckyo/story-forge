@@ -4,8 +4,8 @@
     <div class="flex flex-col sm:flex-row gap-2 mb-2">
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <el-tag size="small" type="info">设定</el-tag>
-        <el-button 
-          size="small" 
+        <el-button
+          size="small"
           type="info"
           @click="$emit('create-card', 'setting')"
           class="flex-shrink-0"
@@ -38,23 +38,37 @@
         >
           <div class="flex justify-between items-start mb-2">
             <div class="text-sm font-medium">{{ setting.name }}</div>
-            <el-button link size="small" @click.stop="$emit('delete-card', setting.id)" title="删除">
-            <el-icon><Close /></el-icon>
-          </el-button>
+            <el-button
+              link
+              size="small"
+              @click.stop="$emit('delete-card', setting.id)"
+              title="删除"
+            >
+              <el-icon><Close /></el-icon>
+            </el-button>
           </div>
           <div class="text-xs text-gray-600 mb-1">
-            <span class="font-medium">类别：</span>{{ setting.category || '未知' }}
+            <span class="font-medium">类别：</span
+            >{{ setting.category || "未知" }}
           </div>
           <div class="text-xs text-gray-600 mb-1">
-            <span class="font-medium">影响范围：</span>{{ setting.scope || '全局' }}
+            <span class="font-medium">影响范围：</span
+            >{{ setting.scope || "全局" }}
           </div>
-          <div class="text-xs text-gray-600 line-clamp-2 mb-2">{{ setting.brief || '无描述' }}</div>
-          <div class="text-xs text-gray-500 mb-1">{{ formatDate(setting.createdAt) }}</div>
-          <div v-if="setting.tags && setting.tags.length > 0" class="flex flex-wrap gap-1">
-            <el-tag 
-              v-for="tag in setting.tags" 
-              :key="tag" 
-              size="small" 
+          <div class="text-xs text-gray-600 line-clamp-2 mb-2">
+            {{ setting.brief || "无描述" }}
+          </div>
+          <div class="text-xs text-gray-500 mb-1">
+            {{ formatDate(setting.createdAt) }}
+          </div>
+          <div
+            v-if="setting.tags && setting.tags.length > 0"
+            class="flex flex-wrap gap-1"
+          >
+            <el-tag
+              v-for="tag in setting.tags"
+              :key="tag"
+              size="small"
               class="bg-gray-100 text-gray-800 border-0"
             >
               {{ tag }}
@@ -67,47 +81,56 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Search, Plus, Edit, Delete, Close } from '@element-plus/icons-vue'
+import { ref, computed } from "vue";
+import { Search, Plus, Edit, Delete, Close } from "@element-plus/icons-vue";
 
 // Props
 const props = defineProps({
   cards: {
     type: Array,
-    default: () => []
-  }
-})
+    default: () => [],
+  },
+});
 
 // Emits
-const emit = defineEmits(['select-card', 'create-card', 'edit-card', 'delete-card'])
+const emit = defineEmits([
+  "select-card",
+  "create-card",
+  "edit-card",
+  "delete-card",
+]);
 
 // Reactive data
-const searchQuery = ref('')
+const searchQuery = ref("");
 
 // 过滤后的设定卡片
 const filteredSettings = computed(() => {
-  let result = props.cards.filter(card => card.type === 'setting')
-  
+  let result = props.cards.filter((card) => card.type === "setting");
+
   // 按搜索词过滤
   if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(card => 
-      card.name.toLowerCase().includes(query) ||
-      (card.brief && card.brief.toLowerCase().includes(query)) ||
-      (card.category && card.category.toLowerCase().includes(query)) ||
-      (card.scope && card.scope.toLowerCase().includes(query))
-    )
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(
+      (card) =>
+        card.name.toLowerCase().includes(query) ||
+        (card.brief && card.brief.toLowerCase().includes(query)) ||
+        (card.category && card.category.toLowerCase().includes(query)) ||
+        (card.scope && card.scope.toLowerCase().includes(query))
+    );
   }
-  
-  return result
-})
+
+  return result;
+});
 
 // 格式化日期
 const formatDate = (date) => {
-  if (!date) return ''
-  const d = new Date(date)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+  if (!date) return "";
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+};
 </script>
 
 <style scoped>

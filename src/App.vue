@@ -6,15 +6,15 @@
 
 <script setup>
 // App.vue 现在只作为路由的容器，具体内容在各个视图组件中实现
-import { onMounted } from 'vue'
-import { useBookStore } from './stores/bookStore'
+import { onMounted } from "vue";
+import { useBookStore } from "./stores/bookStore";
 
-const bookStore = useBookStore()
+const bookStore = useBookStore();
 
 // 应用启动时加载书本数据
 onMounted(() => {
-  bookStore.loadBooks()
-})
+  bookStore.loadBooks();
+});
 </script>
 
 <style scoped>

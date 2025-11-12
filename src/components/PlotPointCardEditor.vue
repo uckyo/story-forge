@@ -93,63 +93,61 @@ const handleClose = () => {
 };
 
 // 保存更改
-const saveChanges = () => {
-  if (!formData.content.trim()) {
-    ElMessage.error("内容不能为空");
-    return;
-  }
+  const saveChanges = () => {
+    if (!formData.content.trim()) {
+      ElMessage.error("内容不能为空");
+      return;
+    }
 
-  const cardData = {
-    id: props.card?.id,
-    type: "plotPoint",
-    content: formData.content.trim(),
-    plotType: formData.plotType,
-  };
-
-  console.log("cardData", cardData);
-  let savedCard;
-  // 如果是编辑现有卡片
-  if (props.card && props.card.id) {
-    // 记录要更新的卡片ID
-    console.log("尝试更新卡片，ID:", props.card.id);
-
-    // 检查卡片是否存在于当前书本中
-    const cardExists = bookStore.currentBook?.cards?.some(
-      (card) => card.id === props.card.id
-    );
-    console.log("卡片在当前书本中是否存在:", cardExists);
-
-    // 记录当前书本状态
-    console.log("当前书本是否存在:", !!bookStore.currentBook);
-
-    const updateData = {
-      ...props.card,
-      ...cardData,
-      updatedAt: Date.now(),
+    const cardData = {
+      id: props.card?.id,
+      type: "plotPoint",
+      content: formData.content.trim(),
+      plotType: formData.plotType,
     };
-    console.log("更新数据:", updateData);
 
-    savedCard = bookStore.updateCard(updateData);
+  
+    let savedCard;
+    // 如果是编辑现有卡片
+    if (props.card && props.card.id) {
+      // 记录要更新的卡片ID
+    
 
-    // 检查更新结果
-    if (!savedCard) {
-      console.error(
-        "updateCard返回null，可能的原因：1) 当前书本为null，或2) 找不到匹配ID的卡片"
-      );
-      ElMessage.error("更新卡片失败：找不到要更新的卡片");
-      return;
+      // 使用bookStore的getCardById方法直接检查卡片是否存在
+      const existingCard = bookStore.getCardById(props.card.id);
+    
+
+      // 记录当前书本状态
+    
+
+      const updateData = {
+        ...props.card,
+        ...cardData,
+        updatedAt: Date.now(),
+      };
+    
+
+      savedCard = bookStore.updateCard(updateData);
+
+      // 检查更新结果
+      if (!savedCard) {
+        console.error(
+          "updateCard返回null，可能的原因：1) 当前书本为null，或2) 找不到匹配ID的卡片"
+        );
+        ElMessage.error("更新卡片失败：找不到要更新的卡片");
+        return;
+      }
+    } else {
+      // 创建新卡片 - 保存返回的实际创建的卡片对象
+      savedCard = bookStore.createCard(cardData);
+
+      // 检查创建结果
+      if (!savedCard) {
+        console.error("createCard返回null，可能是当前书本为null");
+        ElMessage.error("创建卡片失败：无法添加到当前书本");
+        return;
+      }
     }
-  } else {
-    // 创建新卡片 - 保存返回的实际创建的卡片对象
-    savedCard = bookStore.createCard(cardData);
-
-    // 检查创建结果
-    if (!savedCard) {
-      console.error("createCard返回null，可能是当前书本为null");
-      ElMessage.error("创建卡片失败：无法添加到当前书本");
-      return;
-    }
-  }
 
   emit("save", savedCard); // 传递实际保存的卡片对象
   emit("update:visible", false);
@@ -170,13 +168,25 @@ const handleDelete = async () => {
       }
     );
 
-    // 调用store中的删除方法并传递结果
+    // 调用store中的删除方法（已修改为支持嵌套结构）并传递结果
     const success = bookStore.deleteCard(props.card.id);
+    
+    if (success) {
+      ElMessage.success("剧情点删除成功");
+    } else {
+      ElMessage.error("删除失败：找不到要删除的剧情点");
+    }
+    
     emit("delete", { id: props.card.id, success });
     emit("update:visible", false);
-  } catch {
-    // 用户取消删除操作
-    ElMessage.info("已取消删除");
+  } catch (error) {
+    // 用户取消删除操作或出现其他错误
+    if (error !== 'cancel') {
+      console.error("删除剧情点时出错:", error);
+      ElMessage.error("删除操作出错");
+    } else {
+      ElMessage.info("已取消删除");
+    }
   }
 };
 </script>

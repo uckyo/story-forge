@@ -44,27 +44,13 @@
           </el-button>
         </div>
         <div
-          class="overflow-auto flex-1"
+          class="overflow-auto flex-1 w-[800px] mx-auto"
           style="max-height: calc(100vh - 100px)"
         >
-          <el-collapse class="w-full border-0" expand-icon-position="left">
-            <VueDraggable
-              ref="draggableRef"
-              v-model="localTimelineItems"
-              animation="150"
-              ghostClass="ghost"
-              class="w-[800px] mx-auto"
-            >
-              <TimelineItem
-                v-for="item in timelineItems"
-                :key="item.id"
-                :item="item"
-                @update="updateTimelineItem"
-                @delete="deleteTimelineItem"
-                @edit-plot-point="handleEditPlotPoint"
-              />
-            </VueDraggable>
-          </el-collapse>
+          <NestedComponent
+            v-model="timelineItems"
+            @edit-plot-point="handleEditPlotPoint"
+          />
         </div>
       </main>
 
@@ -90,12 +76,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { ElMessage, ElCollapse } from "element-plus";
+import { ElMessage } from "element-plus";
 import { ArrowLeft, Download, Edit, Menu } from "@element-plus/icons-vue";
-import TimelineItem from "../components/TimelineItem.vue";
 import CardLibrary from "../components/CardLibrary.vue";
 import PlotPointCardEditor from "../components/PlotPointCardEditor.vue";
-import { VueDraggable } from "vue-draggable-plus";
+import NestedComponent from "../components/NestedComponent.vue";
 import { useBookStore } from "../stores/bookStore";
 
 const router = useRouter();
@@ -104,28 +89,23 @@ const bookStore = useBookStore();
 
 // 响应式数据
 const showCardLibrary = ref(false);
-const draggableRef = ref(null);
 
 // 计算属性
-const timelineItems = computed(() => bookStore.getCurrentBookTimeline());
+const timelineItems = ref(bookStore.getCurrentBookTimeline());
 
-// 用于拖拽的本地数组引用
-const localTimelineItems = computed({
-  get: () => bookStore.getCurrentBookTimeline(),
-  set: (newValue) => {
-    // 直接替换当前书本的plotPoints数组，保留必要的id和数据
+watch(
+  () => timelineItems,
+  (newValue) => {
     const currentBook = bookStore.currentBook;
     if (currentBook) {
       // 提取排序后的剧情点数据，移除index属性（因为这是getter动态添加的）
-      currentBook.plotPoints = newValue.map((item) => {
-        const { index, ...rest } = item;
-        return rest;
-      });
+      currentBook.plotPoints = newValue;
       // 保存到localStorage
       bookStore.saveBooks();
     }
   },
-});
+  { deep: true }
+);
 
 // 方法
 function goBack() {
@@ -154,32 +134,70 @@ function handlePlotPointSaved(cardData) {
     return;
   }
 
+  // 刷新时间线数据 - 由于timelineItems现在是ref而不是computed
+  if (bookStore.currentBookId) {
+    // 直接更新ref的值，确保UI正确显示更新后的数据
+    timelineItems.value = bookStore.getCurrentBookTimeline();
+  }
+
+  // 清空编辑卡片引用
+  editCard.value = null;
+
   // 关闭编辑器
   showPlotPointCreator.value = false;
   ElMessage.success("剧情点保存成功");
 }
 
 // 处理编辑剧情点
-function handleEditPlotPoint(card) {
-  // 设置要编辑的卡片
-  editCard.value = card;
+function handleEditPlotPoint(cardOrId) {
+  // 检查传入的参数是卡片对象还是ID
+  if (typeof cardOrId === "number" || typeof cardOrId === "string") {
+    // 如果是ID，从store中获取卡片
+    const cardId = parseInt(cardOrId);
+    const card = bookStore.getCardById(cardId);
+
+    if (!card) {
+      console.error(`找不到ID为${cardId}的剧情点卡片`);
+      ElMessage.error("找不到要编辑的剧情点");
+      return;
+    }
+
+    editCard.value = card;
+  } else if (typeof cardOrId === "object" && cardOrId) {
+    // 如果是卡片对象，直接使用
+    editCard.value = cardOrId;
+  } else {
+    console.error("handleEditPlotPoint接收到无效的参数");
+    ElMessage.error("编辑剧情点失败：参数无效");
+    return;
+  }
+
   // 显示编辑器
   showPlotPointCreator.value = true;
 }
 
-function updateTimelineItem(updatedItem) {
-  // 时间线更新现在由bookStore管理，不需要额外操作
-  console.log("Timeline item updated:", updatedItem);
-}
-
 function deleteTimelineItem(deleteEvent) {
+  // 添加错误处理，确保deleteEvent不为null
+  if (!deleteEvent) {
+    console.error("deleteTimelineItem接收到null数据");
+    ElMessage.error("剧情点删除处理失败：数据为空");
+    return;
+  }
+
   // 处理从PlotPointCardEditor传来的删除事件对象
   if (typeof deleteEvent === "object" && deleteEvent.id !== undefined) {
-    const { id, success } = deleteEvent;
+    const { success } = deleteEvent;
+
     if (success) {
       ElMessage.success("剧情点删除成功");
+
+      // 刷新时间线数据 - 由于timelineItems现在是ref而不是computed
+      if (bookStore.currentBookId) {
+        // 直接更新ref的值，确保UI正确显示更新后的数据
+        timelineItems.value = bookStore.getCurrentBookTimeline();
+      }
     } else {
-      ElMessage.error("删除失败，请稍后重试");
+      ElMessage.error("剧情点删除失败：找不到指定的剧情点");
     }
   } else {
     // 兼容旧的直接传递id的方式
@@ -190,6 +208,12 @@ function deleteTimelineItem(deleteEvent) {
       const result = bookStore.deleteCard(itemId);
       if (result) {
         ElMessage.success("剧情点删除成功");
+
+        // 刷新时间线数据 - 由于timelineItems现在是ref而不是computed
+        if (bookStore.currentBookId) {
+          // 直接更新ref的值，确保UI正确显示更新后的数据
+          timelineItems.value = bookStore.getCurrentBookTimeline();
+        }
       } else {
         ElMessage.error("删除失败，请稍后重试");
       }

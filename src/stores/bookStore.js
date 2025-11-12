@@ -29,26 +29,15 @@ export const useBookStore = defineStore('book', {
     },
 
     currentBook: (state) => {
-      // 调试信息，帮助诊断currentBook为null的原因
-      console.log('currentBook getter called')
-      console.log('state.currentBookId:', state.currentBookId)
-      console.log('state.books.length:', state.books.length)
+      // 先检查是否存在currentBookId，如果没有则返回null
+      if (!state.currentBookId) return null
       
-      if (!state.currentBookId) {
-        console.warn('currentBook is null: No currentBookId set')
-        return null
-      }
+      // 从books数组中找到对应的book
+      const book = state.books.find(b => b.id === state.currentBookId)
       
-      const book = state.books.find(book => book.id === state.currentBookId)
-      
-      if (!book) {
-        console.warn(`currentBook is null: Book with id ${state.currentBookId} not found in books array`)
-        // 如果找不到对应的书本，我们可以提供更多信息
-        if (state.books.length > 0) {
-          console.warn(`Available book IDs: ${state.books.map(b => b.id).join(', ')}`)
-        } else {
-          console.warn('No books available in state.books array')
-        }
+      // 如果找不到对应的book，记录错误信息
+      if (!book && state.currentBookId) {
+        console.error('Failed to get current book. This should not happen during normal operation.')
       }
       
       return book
@@ -120,21 +109,18 @@ export const useBookStore = defineStore('book', {
 
     // 设置当前书本
     setCurrentBook(id) {
-      console.log('setCurrentBook called with id:', id)
-      
-      // 验证ID是否存在于books数组中
+      // 验证id是否有效且存在于books数组中
       if (id) {
         const bookExists = this.books.some(book => book.id === id)
         if (!bookExists) {
-          console.warn(`Warning: Book with id ${id} does not exist in books array`)
+          // 如果指定的id不存在，设置为第一本书
+          this.currentBookId = this.books.length > 0 ? this.books[0].id : null
+        } else {
+          this.currentBookId = id
         }
+      } else {
+        this.currentBookId = null
       }
-      
-      this.currentBookId = id
-      
-      // 立即检查设置后的currentBook是否有效
-      const newCurrentBook = this.currentBook
-      console.log('After setCurrentBook, currentBook is:', newCurrentBook)
     },
 
     // 保存书本数据
@@ -184,9 +170,8 @@ export const useBookStore = defineStore('book', {
           this.calculateNextCardId()
         }
         
-        // 如果currentBookId无效且有书本，自动设置第一个书本为当前书本
+        // 自动设置第一个书本为当前书本（如果没有选中的书本）
         if (!this.currentBookId && this.books.length > 0) {
-          console.log('Setting first book as current book since currentBookId is invalid')
           this.currentBookId = this.books[0].id
         }
       } catch (error) {
@@ -283,15 +268,35 @@ export const useBookStore = defineStore('book', {
       const currentBook = this.currentBook
       if (!currentBook) return null
 
-      // 在所有类型的卡片中查找，包括剧情点
+      // 获取所有非剧情点卡片（角色、地点、物品、事件、设定）
       let allCards = this.currentBookCards
       
-      // 添加剧情点到卡片列表中
-      if (currentBook.plotPoints && Array.isArray(currentBook.plotPoints)) {
-        allCards = [...allCards, ...currentBook.plotPoints]
+      // 创建一个函数来递归查找卡片，包括嵌套在children中的卡片
+      const findCardById = (cardId, cards) => {
+        // 先在当前层级查找
+        const found = cards.find(card => card.id === cardId)
+        if (found) return found
+        
+        // 然后递归查找所有children中的卡片
+        for (const card of cards) {
+          if (card.children && Array.isArray(card.children)) {
+            const childFound = findCardById(cardId, card.children)
+            if (childFound) return childFound
+          }
+        }
+        
+        return null
       }
       
-      return allCards.find(card => card.id === id)
+      // 先在常规卡片中查找
+      let foundCard = findCardById(id, allCards)
+      
+      // 如果没找到，再在剧情点中查找（包括嵌套的）
+      if (!foundCard && currentBook.plotPoints && Array.isArray(currentBook.plotPoints)) {
+        foundCard = findCardById(id, currentBook.plotPoints)
+      }
+      
+      return foundCard
     },
 
     // 获取当前书本的剧情点列表
@@ -325,21 +330,10 @@ export const useBookStore = defineStore('book', {
 
     // 创建新卡片
     createCard(cardData) {
-
-      console.log('cardData11', cardData)
       const currentBook = this.currentBook
-      console.log('currentBook:', currentBook)
-      console.log('currentBookId:', this.currentBookId)
-      console.log('books array length:', this.books.length)
       
       if (!currentBook) {
-        console.error('Failed to get current book. This should not happen during normal operation.')
-        console.error('Diagnostic info:')
-        console.error('- currentBookId is:', this.currentBookId)
-        console.error('- books array has', this.books.length, 'items')
-        if (this.books.length > 0) {
-          console.error('- Available books IDs:', this.books.map(b => b.id))
-        }
+        console.error('创建卡片失败：当前没有选中的书本')
         return null
       }
 
@@ -382,6 +376,7 @@ export const useBookStore = defineStore('book', {
           break
         case 'plotPoint':
           newCardData.plotType = cardData.plotType || 'main'
+          newCardData.children = cardData.children || []
           // 剧情点不需要name字段，使用content作为名称
           if (!newCardData.name) {
             newCardData.name = newCardData.content || '未命名剧情点'
@@ -391,12 +386,11 @@ export const useBookStore = defineStore('book', {
 
       // 创建最终卡片对象
       const newCard = {
-        ...newCardData,
         id: this.nextCardId++,
+        ...newCardData,
         createdAt: Date.now(),
         updatedAt: Date.now()
-      }
-      console.log('newCard', newCard)
+      } 
       // 根据卡片类型添加到对应的数组
       switch (cardData.type) {
         case 'character':
@@ -438,42 +432,51 @@ export const useBookStore = defineStore('book', {
       const card = this.getCardById(cardId)
       if (!card) return null
 
-      // 根据卡片类型更新对应的数组
-      const updateArray = (array) => {
-        if (array) {
-          const index = array.findIndex(c => c.id === cardId)
-          if (index !== -1) {
-            array[index] = {
-              ...array[index],
+      // 递归更新嵌套数组中的卡片
+      const updateNestedArray = (array) => {
+        if (!array || !Array.isArray(array)) return null
+        
+        // 尝试在当前层级更新
+        for (let i = 0; i < array.length; i++) {
+          if (array[i].id === cardId) {
+            array[i] = {
+              ...array[i],
               ...updatedCard,
               updatedAt: Date.now()
             }
-            return array[index]
+            return array[i]
+          }
+          
+          // 递归检查并更新children中的卡片
+          if (array[i].children && Array.isArray(array[i].children)) {
+            const updatedChild = updateNestedArray(array[i].children)
+            if (updatedChild) return updatedChild
           }
         }
+        
         return null
       }
 
-      // 尝试在每种类型的数组中更新
+      // 根据卡片类型更新对应的数组
       let updated
       switch (card.type) {
         case 'character':
-          updated = updateArray(currentBook.characters)
+          updated = updateNestedArray(currentBook.characters)
           break
         case 'location':
-          updated = updateArray(currentBook.locations)
+          updated = updateNestedArray(currentBook.locations)
           break
         case 'item':
-          updated = updateArray(currentBook.items)
+          updated = updateNestedArray(currentBook.items)
           break
         case 'event':
-          updated = updateArray(currentBook.events)
+          updated = updateNestedArray(currentBook.events)
           break
         case 'setting':
-          updated = updateArray(currentBook.settings)
+          updated = updateNestedArray(currentBook.settings)
           break
         case 'plotPoint':
-          updated = updateArray(currentBook.plotPoints)
+          updated = updateNestedArray(currentBook.plotPoints)
           break
       }
 
@@ -493,40 +496,53 @@ export const useBookStore = defineStore('book', {
       const card = this.getCardById(id)
       if (!card) return false
 
-      const deleteFromArray = (array) => {
+      // 递归从嵌套数组中删除卡片
+      const deleteFromNestedArray = (array) => {
         if (!array || !Array.isArray(array)) return false
-        const index = array.findIndex(c => c.id === id)
-        if (index !== -1) {
-          array.splice(index, 1)
-          return true
+        
+        // 尝试在当前层级删除
+        for (let i = 0; i < array.length; i++) {
+          if (array[i].id === id) {
+            array.splice(i, 1)
+            return true
+          }
+          
+          // 递归检查并删除children中的卡片
+          if (array[i].children && Array.isArray(array[i].children)) {
+            const deletedFromChild = deleteFromNestedArray(array[i].children)
+            if (deletedFromChild) return true
+          }
         }
+        
         return false
       }
 
       let deleted = false
       switch (card.type) {
         case 'character':
-          deleted = deleteFromArray(currentBook.characters)
+          deleted = deleteFromNestedArray(currentBook.characters)
           break
         case 'location':
-          deleted = deleteFromArray(currentBook.locations)
+          deleted = deleteFromNestedArray(currentBook.locations)
           break
         case 'item':
-          deleted = deleteFromArray(currentBook.items)
+          deleted = deleteFromNestedArray(currentBook.items)
           break
         case 'event':
-          deleted = deleteFromArray(currentBook.events)
+          deleted = deleteFromNestedArray(currentBook.events)
           break
         case 'setting':
-          deleted = deleteFromArray(currentBook.settings)
+          deleted = deleteFromNestedArray(currentBook.settings)
           break
         case 'plotPoint':
-          deleted = deleteFromArray(currentBook.plotPoints)
+          deleted = deleteFromNestedArray(currentBook.plotPoints)
           // 不再需要从timeline数组删除，因为直接管理plotPoints数组
           break
       }
 
-      this.saveBooks()
+      if (deleted) {
+        this.saveBooks()
+      }
       return deleted
     },
 

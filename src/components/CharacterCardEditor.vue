@@ -2,7 +2,7 @@
   <el-dialog
     :modelValue="visible"
     @update:modelValue="handleUpdateVisible"
-    title="编辑人物卡片"
+    :title="props.card && props.card.id ? '编辑人物卡片' : '新增人物卡片'"
     width="600px"
     @close="handleClose"
   >
@@ -318,6 +318,24 @@ const saveChanges = () => {
   };
 
   emit("save", cardData);
+  
+  // 如果是新增卡片，保存后重置表单
+  if (!props.card || !props.card.id) {
+    Object.assign(formData, {
+      id: null,
+      name: "",
+      type: "character",
+      brief: "",
+      content: "",
+      tags: [],
+      color: "",
+      age: null,
+      gender: "",
+      personality: "",
+    });
+    tagInput.value = "";
+  }
+  
   handleClose();
 };
 

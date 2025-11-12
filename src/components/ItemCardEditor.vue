@@ -2,7 +2,7 @@
   <el-dialog
     :modelValue="visible"
     @update:modelValue="handleUpdateVisible"
-    title="编辑物品卡片"
+    :title="props.card && props.card.id ? '编辑物品卡片' : '新增物品卡片'"
     width="600px"
     @close="handleClose"
   >
@@ -317,6 +317,24 @@ const saveChanges = () => {
   };
 
   emit("save", cardData);
+  
+  // 如果是新增卡片，保存后重置表单
+  if (!props.card || !props.card.id) {
+    Object.assign(formData, {
+      id: null,
+      name: "",
+      type: "item",
+      brief: "",
+      content: "",
+      tags: [],
+      color: "",
+      itemType: "",
+      owner: "",
+      value: "",
+    });
+    tagInput.value = "";
+  }
+  
   handleClose();
 };
 

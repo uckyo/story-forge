@@ -2,7 +2,7 @@
   <el-dialog
     :modelValue="visible"
     @update:modelValue="handleUpdateVisible"
-    title="编辑剧情点"
+    :title="props.card && props.card.id ? '编辑剧情点' : '新增剧情点'"
     width="600px"
     @close="handleClose"
   >
@@ -150,6 +150,13 @@ const handleClose = () => {
     }
 
   emit("save", savedCard); // 传递实际保存的卡片对象
+  
+  // 如果是新增卡片，保存后重置表单
+  if (!props.card || !props.card.id) {
+    formData.content = "";
+    formData.plotType = "main";
+  }
+  
   emit("update:visible", false);
 };
 

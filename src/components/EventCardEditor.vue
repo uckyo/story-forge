@@ -2,7 +2,7 @@
   <el-dialog
     :modelValue="visible"
     @update:modelValue="handleUpdateVisible"
-    title="编辑事件卡片"
+    :title="props.card && props.card.id ? '编辑事件卡片' : '新增事件卡片'"
     width="600px"
     @close="handleClose"
   >
@@ -310,6 +310,24 @@ const saveChanges = () => {
   };
 
   emit("save", cardData);
+  
+  // 如果是新增卡片，保存后重置表单
+  if (!props.card || !props.card.id) {
+    Object.assign(formData, {
+      id: null,
+      name: "",
+      type: "event",
+      brief: "",
+      content: "",
+      tags: [],
+      color: "",
+      time: "",
+      location: "",
+      participants: "",
+    });
+    tagInput.value = "";
+  }
+  
   handleClose();
 };
 

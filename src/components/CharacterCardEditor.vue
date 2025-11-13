@@ -32,9 +32,9 @@
 
       <el-form-item label="性别">
         <el-radio-group v-model="formData.gender">
-          <el-radio value="male">男</el-radio>
-          <el-radio value="female">女</el-radio>
-          <el-radio value="other">其他</el-radio>
+          <el-radio value="男">男</el-radio>
+          <el-radio value="女">女</el-radio>
+          <el-radio value="其他">其他</el-radio>
         </el-radio-group>
       </el-form-item>
 
@@ -365,5 +365,15 @@ const handleUpdateVisible = (value) => {
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
+}
+
+/* 优化性别选择单选框间距 */
+.el-radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.el-radio-group .el-radio {
+  margin-right: 0;
 }
 </style>

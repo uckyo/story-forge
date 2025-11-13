@@ -15,7 +15,9 @@
       >
         <template #title>
           <div class="flex items-center gap-2 w-full">
-            <span class="flex-1">{{ el.content }}</span>
+            <span class="flex-1">
+              <ContentRenderer :content="el.content" />
+            </span>
             <el-tag
               :type="getPlotTypeColor(el?.plotType)"
               size="small"
@@ -50,6 +52,7 @@
 <script setup>
 import { VueDraggable } from "vue-draggable-plus";
 import { computed } from "vue";
+import ContentRenderer from "./ContentRenderer.vue";
 
 const props = defineProps({
   modelValue: {

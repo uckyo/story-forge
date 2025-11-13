@@ -8,12 +8,16 @@
   >
     <el-form label-width="80px">
       <el-form-item label="内容" required>
-        <el-input
+        <el-mention
           v-model="formData.content"
           type="textarea"
-          placeholder="请输入剧情点内容"
+          :options="mentionOptions"
+          prefix="@"
+          split="#"
+          placeholder="请输入剧情点内容，使用@提及其他卡片"
           :rows="6"
-        ></el-input>
+          style="width: 100%"
+        ></el-mention>
       </el-form-item>
 
       <el-form-item label="类型" required>
@@ -40,8 +44,10 @@
   </el-dialog>
 </template>
 
+
+
 <script setup>
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useBookStore } from "../stores/bookStore";
 
@@ -65,6 +71,17 @@ const formData = reactive({
   content: "",
   plotType: "main",
 });
+
+// 计算el-mention的选项
+const mentionOptions = computed(() => {
+  // 从bookStore获取所有卡片并转换为el-mention需要的格式
+  return bookStore.currentBookCards.map(card => ({
+    label: card.name || '未命名',
+    value: card.name || '未命名'
+  }));
+});
+
+
 
 // 监听卡片变化，更新表单数据
 watch(
